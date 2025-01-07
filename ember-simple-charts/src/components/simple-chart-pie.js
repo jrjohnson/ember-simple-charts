@@ -1,6 +1,5 @@
 import { cached, tracked } from '@glimmer/tracking';
 import Component from '@glimmer/component';
-import { isDestroying, isDestroyed } from '@ember/destroyable';
 import 'd3-transition';
 import { select } from 'd3-selection';
 import { scaleSequential } from 'd3-scale';
@@ -8,35 +7,35 @@ import { interpolateSinebow } from 'd3-scale-chromatic';
 import { arc, pie } from 'd3-shape';
 import { easeLinear } from 'd3-ease';
 import { interpolate } from 'd3-interpolate';
+import { TrackedAsyncData } from 'ember-async-data';
 import { timeout, restartableTask } from 'ember-concurrency';
 
 export default class SimpleChartPie extends Component {
-  @tracked loading = true;
   @tracked element = null;
 
   get dataOrArray() {
     return this.args.data ?? [{ data: 1, label: '', empty: true }];
   }
 
-  /**
-   * We use isPainted to trigger a re-render of the chart
-   * Passing all the values we need to render through this getter
-   * so it will re-fire if these values change
-   */
   @cached
-  get isPainted() {
-    this.paint.perform(
-      this.element,
-      this.dataOrArray,
-      this.args.containerHeight,
-      this.args.containerWidth,
-      this.args.isIcon,
-      this.args.isClickable,
-      this.args.hover,
-      this.args.leave,
-      this.args.onClick,
+  get isPaintedData() {
+    return new TrackedAsyncData(
+      this.paint.perform(
+        this.element,
+        this.dataOrArray,
+        this.args.containerHeight,
+        this.args.containerWidth,
+        this.args.isIcon,
+        this.args.isClickable,
+        this.args.hover,
+        this.args.leave,
+        this.args.onClick,
+      ),
     );
-    return true;
+  }
+
+  get isPainted() {
+    return this.isPaintedData.isResolved;
   }
 
   paint = restartableTask(
@@ -52,7 +51,6 @@ export default class SimpleChartPie extends Component {
       onClick,
     ) => {
       await timeout(1); //wait a beat to let the loading value settle
-      this.loading = true;
       const height = Math.min(containerHeight, containerWidth) || 0;
       const width = Math.min(containerHeight, containerWidth) || 0;
       const svg = select(element);
@@ -98,11 +96,6 @@ export default class SimpleChartPie extends Component {
           b.innerRadius = 0;
           const i = interpolate({ startAngle: 0, endAngle: 0 }, b);
           return (p) => createArc(i(p));
-        })
-        .on('end', () => {
-          if (!(isDestroyed(this) || isDestroying(this))) {
-            this.loading = false;
-          }
         });
 
       if (!isIcon) {

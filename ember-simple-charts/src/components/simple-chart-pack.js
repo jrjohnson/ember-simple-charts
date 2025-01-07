@@ -1,37 +1,35 @@
 import 'd3-transition';
 import { cached, tracked } from '@glimmer/tracking';
 import Component from '@glimmer/component';
-
 import { select } from 'd3-selection';
 import { hierarchy, pack } from 'd3-hierarchy';
 import { interpolateSinebow } from 'd3-scale-chromatic';
 import { scaleSequential } from 'd3-scale';
-
+import { TrackedAsyncData } from 'ember-async-data';
 import { timeout, restartableTask } from 'ember-concurrency';
 
 export default class SimpleChartPack extends Component {
-  @tracked loading = true;
   @tracked element = null;
 
-  /**
-   * We use isPainted to trigger a re-render of the chart
-   * Passing all the values we need to render through this getter
-   * so it will re-fire if these values change
-   */
   @cached
-  get isPainted() {
-    this.paint.perform(
-      this.element,
-      this.args.data,
-      this.args.containerHeight,
-      this.args.containerWidth,
-      this.args.isIcon,
-      this.args.isClickable,
-      this.args.hover,
-      this.args.leave,
-      this.args.onClick,
+  get isPaintedData() {
+    return new TrackedAsyncData(
+      this.paint.perform(
+        this.element,
+        this.args.data,
+        this.args.containerHeight,
+        this.args.containerWidth,
+        this.args.isIcon,
+        this.args.isClickable,
+        this.args.hover,
+        this.args.leave,
+        this.args.onClick,
+      ),
     );
-    return true;
+  }
+
+  get isPainted() {
+    return this.isPaintedData.isResolved;
   }
 
   paint = restartableTask(
@@ -47,7 +45,6 @@ export default class SimpleChartPack extends Component {
       onClick,
     ) => {
       await timeout(1); //wait a beat to let the loading value settle
-      this.loading = true;
       const height = Math.min(containerHeight, containerWidth) || 0;
       const width = Math.min(containerHeight, containerWidth) || 0;
       const dataOrEmptyObject = data ? data : {};
@@ -103,7 +100,6 @@ export default class SimpleChartPack extends Component {
           nodes.style('cursor', 'pointer');
         }
       }
-      this.loading = false;
     },
   );
 }
