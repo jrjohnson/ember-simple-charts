@@ -30,7 +30,7 @@
     "@babel/eslint-parser": "^7.26.5",
     "@ember/optional-features": "^2.2.0",
     "@ember/test-helpers": "^4.0.5",
-    "@eslint/js": "^9.19.0",
+    "@eslint/js": "^9.23.0",
     "@glimmer/component": "^1.1.2",
     "@glimmer/tracking": "^1.1.2",
     "@percy/cli": "^1.30.7",
